@@ -297,13 +297,13 @@ def JacoFK(q):
     return p, R, Jp,Jo
 
 
-def JacoIK(pd,q0,kp,ko):
+def JacoIK(pd,q0,p,R,kp,ko):
     q=q0
     dt=.01
     Kp=kp*np.diag([1,1,1])
     Ko=ko*np.diag([1,1,1])
     for i in range(1):
-        p, R, Jp,Jo = JacoFK(q)
+        _, _, Jp,Jo = JacoFK(q)
         J=np.concatenate((Jp,Jo))
         Jinv=np.linalg.pinv(J)
         ep=np.reshape(pd,[-1,1])-p
@@ -313,9 +313,9 @@ def JacoIK(pd,q0,kp,ko):
         B=np.matmul(np.linalg.pinv(L),np.matmul(Ko,eo))
         u=np.concatenate((A,B),axis=0)
         qdot=np.matmul(np.diag([1,1,1,1,1,1]),np.matmul(Jinv,u))
-        if dt*np.linalg.norm(qdot)>.1:#clamp max joint angular dispalcement
+        if dt*np.linalg.norm(qdot)>.5:#clamp max joint angular dispalcement
             #q = q + qdot /np.linalg.norm(qdot)
-            qdot=.1/dt*(qdot /np.linalg.norm(qdot))
+            qdot=.5/dt*(qdot /np.linalg.norm(qdot))
         q=q+dt*qdot#/np.linalg.norm(qdot)
 
     return q,p,np.linalg.norm(ep),np.linalg.norm(eo),qdot

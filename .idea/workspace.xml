@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c40a0203-4f31-4aa3-a079-148cd259c70e" name="Default Changelist" comment="" />
+    <list default="true" id="c40a0203-4f31-4aa3-a079-148cd259c70e" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/JacoKin.py" beforeDir="false" afterPath="$PROJECT_DIR$/JacoKin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PnPEnvClass.py" beforeDir="false" afterPath="$PROJECT_DIR$/PnPEnvClass.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/picknplace.ttt" beforeDir="false" afterPath="$PROJECT_DIR$/picknplace.ttt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vrep_python_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/vrep_python_main.py" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -15,8 +22,13 @@
       </list>
     </option>
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="ProjectId" id="1QhWeCxrLHMIVHH316cPa0pEFFa" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
   <component name="RunDashboard">
@@ -71,5 +83,27 @@
       <updated>1568223401335</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/vrep_python_main.py</url>
+          <line>96</line>
+          <option name="timeStamp" value="161" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
