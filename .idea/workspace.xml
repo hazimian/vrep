@@ -2,10 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c40a0203-4f31-4aa3-a079-148cd259c70e" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/expert_demo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/JacoKin.py" beforeDir="false" afterPath="$PROJECT_DIR$/JacoKin.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PnPEnvClass.py" beforeDir="false" afterPath="$PROJECT_DIR$/PnPEnvClass.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RobotClass.py" beforeDir="false" afterPath="$PROJECT_DIR$/RobotClass.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/picknplace.ttt" beforeDir="false" afterPath="$PROJECT_DIR$/picknplace.ttt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vrep_python_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/vrep_python_main.py" afterDir="false" />
     </list>
@@ -89,21 +90,12 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>
     </option>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/vrep_python_main.py</url>
-          <line>96</line>
-          <option name="timeStamp" value="161" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

@@ -40,10 +40,13 @@ class PnP_Env(Robot):
         self.action=np.zeros(7,1)
         return self.state
 
+    def send_action(self,qdot,q_gdot):#this command send the action to the robot
+        self.Robot.SetHandTargetVel(q_gdot)
+        self.Robot.SetArmJointTargetVel(qdot)
 
 
 
-    def step(self,action):
+    def step(self,action):#runs one simulation step
         dt=0.01
         qdot=action[:7,:]
         g_command=action[7:,:]
@@ -52,3 +55,4 @@ class PnP_Env(Robot):
 
 
     def reward(self):
+        return 0

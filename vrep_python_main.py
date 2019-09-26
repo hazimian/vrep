@@ -1,6 +1,7 @@
 import copy
 from JacoKin import *
-from RobotClass import *
+from PnPEnvClass import *
+from expert_demo import demo_controller
 import matplotlib.pyplot as plt
 
 def Euler2Rot(angles):
@@ -18,6 +19,8 @@ def Euler2Rot(angles):
     R=np.matmul(np.matmul(R1,R2),R3)
 
     return R
+
+
 
 
 
@@ -40,7 +43,7 @@ if __name__=='__main__':
     if clientID!=-1:
         print ('Connected to remote API server')
         vrep.simxSynchronous(clientID, True); # Enable the synchronous mode(Blocking function call)
-        returnCode=vrep.simxStartSimulation(clientID, vrep.simx_opmode_oneshot)
+
 
 
 
@@ -53,10 +56,6 @@ if __name__=='__main__':
         ##get handle to Jaco hand dummy
         returnCode,HandCenterDummy_handle=vrep.simxGetObjectHandle(clientID, "HandCenterDummy", vrep.simx_opmode_blocking)
 
-        # Robot1.SetHandTargetVel([-.1, -.1, -.1, -.1])
-        # time.sleep(1)
-        # returnCode, x = vrep.simxGetJointPosition(clientID, int(Robot1.hand_joints_handle[0]),
-        #                                                 vrep.simx_opmode_buffer)
 
         #get robot joint values and set this as home
         q = Robot1.GetArmJointPos()
@@ -84,8 +83,7 @@ if __name__=='__main__':
             closing_time=0
             release_time=0
             ###############Lets setup the scene##############
-            # send robot home
-            returnCode = Robot1.SetArmJointTargetPos(q_home)
+            returnCode = vrep.simxStartSimulation(clientID, vrep.simx_opmode_oneshot)
             # randomly place the sphere and the cup
             sphere_pos = np.matmul(np.diag([.35, .25, 0]), np.random.random([3, 1])) + np.array([[0], [.2], [.22]])
             returnCode = vrep.simxSetObjectPosition(clientID, sphere_handle, -1, sphere_pos, vrep.simx_opmode_blocking)
@@ -100,105 +98,36 @@ if __name__=='__main__':
 
                 # get the current hand position
                 returnCode, Jaco_Hand_pos = vrep.simxGetObjectPosition(clientID, HandCenterDummy_handle, -1,
-                                                                       vrep.simx_opmode_blocking)
+                                                                       vrep.simx_opmode_oneshot)
                 returnCode, Jaco_Hand_ori = vrep.simxGetObjectOrientation(clientID, HandCenterDummy_handle, -1,
-                                                                          vrep.simx_opmode_blocking)
+                                                                          vrep.simx_opmode_oneshot)
                 p = np.reshape(Jaco_Hand_pos, [-1, 1])
                 # R = Euler2Rot(Jaco_Hand_pos)
-
                 q = Robot1.GetArmJointPos()
                 p1, R, _, _ = Robot1.FK_fun(q)
-                #wait for 2 seconds
-                if step==int(1/t_s):
-                    ########## Now get the scene##############
-                    returnCode, sphere_pos = vrep.simxGetObjectPosition(clientID, sphere_handle, -1,
-                                                                        vrep.simx_opmode_blocking)
-                    pd = np.reshape(sphere_pos, [-1, 1])+np.array([[0], [0], [.08]])
+                returnCode, sphere_pos = vrep.simxGetObjectPosition(clientID, sphere_handle, -1,
+                                                                          vrep.simx_opmode_oneshot)
+                returnCode, cup_pos = vrep.simxGetObjectPosition(clientID, cup_handle, -1,
+                                                                          vrep.simx_opmode_oneshot)
+                q = Robot1.GetArmJointPos()
 
-                    stage=1
-                    print('stage:',stage)
-                    continue
 
-                if stage==1 and step%N==0:
-                    ###move towards the ball
-                    ep = pd-p
-                    eo = np.reshape(.5*np.cross(np.ndarray.flatten(R[:,2]),np.array([0,0,-1])),[-1,1])
+                if step%N==0:
+                    u,stage,closing_time, release_time=demo_controller(p, R, q, sphere_pos, cup_pos, stage, step,  closing_time, release_time,t_s,N,Robot1,q_home)
 
-                    if np.linalg.norm(ep) > .001 or np.linalg.norm(eo) > .01:
-                        qd, p, ep, eo, qdot = Robot1.IK_fun(pd, q,p,R, 100, 100)
-                        Robot1.SetArmJointTargetPos(qd)
-                        #Robot1.SetArmJointTargetPos(qdot)
 
-                    else:
-                        stage=2
-                        print('stage:', stage)
-                        continue
-                    # self.SetArmJointTargetPos(qdot)
+                qdot=np.zeros([6,1])
+                qdot=u[0:6]
+                Robot1.SetArmJointTargetVel(qdot)
+                q_gdot=u[6:]
+                Robot1.SetHandTargetVel(q_gdot)
+                if stage==7:
+                    returnCode = vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot)
+                    time.sleep(2)
+                    break
 
-                if stage == 2 and step%N==0:# now lets descend and grasp
-                    pd = np.reshape(sphere_pos, [-1, 1])+np.array([[0], [0], [.01]])
-                    ###move towards the ball
-                    ep = pd-p
-                    eo = np.reshape(.5*np.cross(np.ndarray.flatten(R[:,2]),np.array([0,0,-1])),[-1,1])
-                    if np.linalg.norm(ep) > .003 or np.linalg.norm(eo) > .01:
-                        qd, p, ep, eo, qdot = Robot1.IK_fun(pd, q,p,R, 10, 10)
-                        Robot1.SetArmJointTargetPos(qd)
-                    else:
-                        stage=3
-                        print('stage:', stage)
-
-                        continue
-
-                if stage == 3 and step % N == 0: # closing the grasp
-                    closing_time=closing_time+1
-                    if closing_time<int(2/(N*t_s)):
-                        Robot1.SetHandTargetVel([-.05, -.05, -.05, -.05])
-                    else:
-                        stage=4
-                        print('stage:', stage)
-                        continue
-                if stage == 4 and step % N == 0:  #now move above the cup
-
-                    pd=cup_pos+np.array([[0], [0], [.2]])
-                    ep = pd - p
-                    eo = np.reshape(.5 * np.cross(np.ndarray.flatten(R[:, 2]), np.array([0, 0, -1])), [-1, 1])
-                    if np.linalg.norm(ep) > .001 or np.linalg.norm(eo) > .01:
-                        qd, p, ep, eo, qdot = Robot1.IK_fun(pd, q,p,R, 100, 100)
-                        Robot1.SetArmJointTargetPos(qd)
-                    else:
-                        stage = 5
-                        print('stage:', stage)
-                        continue
-
-                if stage == 5 and step % N == 0:  #descend
-
-                    pd=cup_pos+np.array([[0], [0], [.1]])
-                    ep = pd - p
-                    eo = np.reshape(.5 * np.cross(np.ndarray.flatten(R[:, 2]), np.array([0, 0, -1])), [-1, 1])
-                    if np.linalg.norm(ep) > .001 or np.linalg.norm(eo) > .01:
-                        qd, p, ep, eo, qdot = Robot1.IK_fun(pd, q,p,R, 10, 10)
-                        Robot1.SetArmJointTargetPos(qd)
-                    else:
-                        stage = 6
-                        print('stage:', stage)
-                        continue
-
-                if stage == 6 and step % N == 0:  # now lets descend towards the cup and release
-                    release_time=release_time+1
-                    if release_time<int(1/(N*t_s)):
-                        Robot1.SetHandTargetVel([.2, .2, .2, .2])
-                    else:
-                        stage=7
-                        print('stage:', stage)
-                        break
-
-                    # #let move robot back to home and ready for next run
-                    # Robot1.SetArmJointTargetPos(q_home)
-                    # #wait until roobt is home
-                    # while np.linalg.norm(q-q_home)>.01:
-                    #     time.sleep(.01)
-                    #     q=Robot1.GetArmJointPos()
         returnCode=vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot)
+
 
      # Before closing the connection to V-REP, make sure that the last command sent out had time to arrive. You can guarantee this with (for example):
         vrep.simxGetPingTime(clientID)

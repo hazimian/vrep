@@ -71,9 +71,6 @@ class Robot:
 
         return returnCode
 
-    def SetArmJointTargetVel(self,vel_d):
-        for i in range(0,6):
-            returnCode = vrep.simxSetJointTargetVelocity(self.clientID, int(self.arm_joints_handle[i]), vel_d[i], vrep.simx_opmode_oneshot)
 
         return returnCode
     def GetHandJointPos(self):
@@ -82,10 +79,9 @@ class Robot:
             returnCode,q[i,0] = vrep.simxGetJointPosition(self.clientID, int(self.hand_joints_handle[i+4]), vrep.simx_opmode_blocking)
         return q
 
-
-
     def SetArmJointTargetVel(self,qdot):
-        for i in range(6):
-            returnCode = vrep.simxSetJointTargetPosition(self.clientID, int(self.arm_joints_handle[i]), qdot[i],
-                                                   vrep.simx_opmode_streaming)
+        for k in range(6):
+            returnCode=vrep.simxSetJointTargetVelocity(self.clientID, int(self.arm_joints_handle[k]), qdot[k, 0],
+                                            vrep.simx_opmode_oneshot)
         return returnCode
+
