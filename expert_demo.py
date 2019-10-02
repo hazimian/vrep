@@ -1,6 +1,12 @@
 import numpy as np
 
-def demo_controller(p,R,q,sphere_pos,cup_pos,stage,step,closing_time, release_time,t_s,N,Robot1,q_home):
+def demo_controller(state,p,R,stage,step,closing_time, release_time,t_s,N,Robot1,q_home):
+    q=state[:6]
+    q_g=state[6:9]
+    cup_pos=state[9:12]
+    cup_ori=state[12:15]
+    sphere_pos=state[15:18]
+    force=state[18:22]
     u=np.zeros([10,1])
     if step == int(1 / t_s):#idle: do nothing just send zero control effort
         stage = 1
@@ -13,7 +19,7 @@ def demo_controller(p,R,q,sphere_pos,cup_pos,stage,step,closing_time, release_ti
         ep = pd - p
         eo = np.reshape(.5 * np.cross(np.ndarray.flatten(R[:, 2]), np.array([0, 0, -1])), [-1, 1])
 
-        if np.linalg.norm(ep) > .001 or np.linalg.norm(eo) > .01:
+        if np.linalg.norm(ep) > .002 or np.linalg.norm(eo) > .01:
             qd, p, ep, eo, qdot = Robot1.IK_fun(pd, q, p, R, 10, 10)
             q_gdot=np.zeros([4,1])
             u=np.concatenate((qdot,q_gdot),axis=0)
@@ -22,7 +28,6 @@ def demo_controller(p,R,q,sphere_pos,cup_pos,stage,step,closing_time, release_ti
         else:
             stage = 2
             print('stage:', stage)
-            # return u,stage,closing_time, release_time
 
     if stage == 2 :  # now lets descend and grasp
         pd = np.reshape(sphere_pos, [-1, 1]) + np.array([[0], [0], [.01]])
@@ -37,21 +42,21 @@ def demo_controller(p,R,q,sphere_pos,cup_pos,stage,step,closing_time, release_ti
         else:
             stage = 3
             print('stage:', stage)
-            # return u,stage,closing_time, release_time
 
 
     if stage == 3 :  # closing the grasp
         closing_time = closing_time + 1
-        if closing_time < int(3 / (N * t_s)):
+        #if closing_time < int(3 / (N * t_s)):
+        if np.linalg.norm(force-np.array([[10],[10],[10],[10]]))>1:
             #Robot1.SetHandTargetVel([-.1, -.1, -.1, -.1])
             qdot=np.zeros([6,1])
-            q_gdot=np.array([[-.3],[-.2],[-.3],[-.2]])
+            q_gdot=np.array([[-.1],[-.2],[-.1],[-.1]])
             u=np.concatenate((qdot,q_gdot),axis=0)
             return u,stage,closing_time, release_time
         else:
             stage = 4
             print('stage:', stage)
-            # return u,stage,closing_time, release_time
+
     if stage == 4:  # now move above the cup
 
         pd = np.reshape(cup_pos, [-1, 1])  + np.array([[0], [0], [.2]])
@@ -93,17 +98,5 @@ def demo_controller(p,R,q,sphere_pos,cup_pos,stage,step,closing_time, release_ti
             stage = 7
             print('stage:', stage)
             # return u,stage,closing_time, release_time
-    # if stage == 7 and step % N == 0:  # now go back home
-    #
-    #
-    #     eq = q_home - q
-    #     if np.linalg.norm(eq) > .01:
-    #         qdot=10*eq
-    #         q_gdot=np.zeros([4,1])
-    #         u=np.concatenate((qdot,q_gdot),axis=0)
-    #         return u,stage,closing_time, release_time
-    #     else:
-    #         stage = 8
-    #         print('stage:', stage)
-    #         return u,stage,closing_time, release_time
+
     return u,stage,closing_time, release_time

@@ -2,7 +2,11 @@ import copy
 from JacoKin import *
 from PnPEnvClass import *
 from expert_demo import demo_controller
+from DDPGfDClass import *
+import pickle
 import matplotlib.pyplot as plt
+from os import path
+
 
 def Euler2Rot(angles):
     a=angles[0]
@@ -25,6 +29,21 @@ def Euler2Rot(angles):
 
 
 if __name__=='__main__':
+    if path.exists("data.pkl"):
+        with open('data.pkl','rb') as f:
+            buffer,episode0=pickle.load(f)
+            episode0+=1
+    else:
+        episode0=0
+        buffer=0
+
+    #
+    #     file_read_andle=open('data.pkl','r')
+    #
+    #
+    # file_write_andle = open('data.obj', 'w')
+
+
     # try:
     #     import vrep
     #
@@ -37,31 +56,16 @@ if __name__=='__main__':
     #     print ('--------------------------------------------------------------')
     #     print ('')
 
-
     vrep.simxFinish(-1) # just in case, close all opened connections
     clientID=vrep.simxStart('127.0.0.1',19997,True,True,5000,5) # Connect to V-REP (19999 for non-continuous mode and 19997 for continuous)
     if clientID!=-1:
         print ('Connected to remote API server')
-        vrep.simxSynchronous(clientID, True); # Enable the synchronous mode(Blocking function call)
 
-
-
-
-        # create robot object
-        Robot1 = Robot(clientID, JacoFK, JacoIK)
-        ##get handles
-        returnCode, sphere_handle = vrep.simxGetObjectHandle(clientID, "Sphere", vrep.simx_opmode_blocking)
-        #get cup handle
-        returnCode, cup_handle = vrep.simxGetObjectHandle(clientID, "Cup", vrep.simx_opmode_blocking)
-        ##get handle to Jaco hand dummy
-        returnCode,HandCenterDummy_handle=vrep.simxGetObjectHandle(clientID, "HandCenterDummy", vrep.simx_opmode_blocking)
-
-
+        Env=PnP_Env(clientID, JacoFK, JacoIK)
         #get robot joint values and set this as home
-        q = Robot1.GetArmJointPos()
+        q = Env.GetArmJointPos()
         q_home=q
-        returnCode, Jaco_Hand_pos = vrep.simxGetObjectPosition(clientID, HandCenterDummy_handle, -1, vrep.simx_opmode_blocking)
-        returnCode, cup_ori = vrep.simxGetObjectOrientation(clientID, cup_handle, -1, vrep.simx_opmode_blocking)
+
 
         #task squence:
         # 0. sit idle for scene initial setup (move robot to home, randomly place the ball and the cup)
@@ -74,63 +78,72 @@ if __name__=='__main__':
         # 7. done
 
         t_s=.01
-        N=2
-
-        for episode in range(10):
+        N=4
+        n_demos=2#numbe rof demos
+        max_epoc=1000
+        episode_length=int(8/t_s)
+        batch_size=32
+        #create a ddpg agent
+        agent=ddpg(state_size=22,action_size=10,action_bound=np.array([3,3,3,3,3,3,.3,.3,.3,.3]),buffer=buffer)
+        state_buffer = collections.deque(maxlen=agent.n)
+        action_buffer = collections.deque(maxlen=agent.n)
+        reward_buffer = collections.deque(maxlen=agent.n)
+        for episode in range(episode0,max_epoc):
             # reset stage variable
-            print("##### Episode", episode,":")
+            print("episode:", episode,":")
             stage = 0
             closing_time=0
             release_time=0
+            total_return=0
             ###############Lets setup the scene##############
+            vrep.simxSynchronous(clientID, True);  # Enable the synchronous mode(Blocking function call)
             returnCode = vrep.simxStartSimulation(clientID, vrep.simx_opmode_oneshot)
-            # randomly place the sphere and the cup
-            sphere_pos = np.matmul(np.diag([.35, .25, 0]), np.random.random([3, 1])) + np.array([[0], [.2], [.22]])
-            returnCode = vrep.simxSetObjectPosition(clientID, sphere_handle, -1, sphere_pos, vrep.simx_opmode_blocking)
-            cup_pos = np.matmul(np.diag([.2, .25, 0]), np.random.random([3, 1])) + np.array([[-.35], [.2], [.24]])
-            returnCode = vrep.simxSetObjectPosition(clientID, cup_handle, -1, cup_pos, vrep.simx_opmode_blocking)
-            returnCode = vrep.simxSetObjectOrientation(clientID, cup_handle, -1, cup_ori, vrep.simx_opmode_blocking)
+            # reset the environment
+            a=np.zeros([22,1])
+            state,dummy_pos=Env.reset(q_home)
 
             ####### ############step through simulation ########
-            for step in range(int(50/t_s)):
-                vrep.simxSynchronousTrigger(clientID);  # Trigger next simulation step (Blocking function call)
-                # vrep.simxGetPingTime(clientID)  #a blocking call to ensure each step is actually executed
+            print("simulation")
+            for step in range(episode_length):
+                p1, R, _, _ = Env.FK_fun(q)
+                p=dummy_pos
 
-                # get the current hand position
-                returnCode, Jaco_Hand_pos = vrep.simxGetObjectPosition(clientID, HandCenterDummy_handle, -1,
-                                                                       vrep.simx_opmode_oneshot)
-                returnCode, Jaco_Hand_ori = vrep.simxGetObjectOrientation(clientID, HandCenterDummy_handle, -1,
-                                                                          vrep.simx_opmode_oneshot)
-                p = np.reshape(Jaco_Hand_pos, [-1, 1])
-                # R = Euler2Rot(Jaco_Hand_pos)
-                q = Robot1.GetArmJointPos()
-                p1, R, _, _ = Robot1.FK_fun(q)
-                returnCode, sphere_pos = vrep.simxGetObjectPosition(clientID, sphere_handle, -1,
-                                                                          vrep.simx_opmode_oneshot)
-                returnCode, cup_pos = vrep.simxGetObjectPosition(clientID, cup_handle, -1,
-                                                                          vrep.simx_opmode_oneshot)
-                q = Robot1.GetArmJointPos()
+                if step % N == 0:
+                    if episode < n_demos:
+                    #generate action
+                        a,stage,closing_time, release_time=demo_controller(state,p,R,stage, step,closing_time, release_time,t_s,N,Env,q_home)
+                    else:
+                        print(234)
+                        a = agent.explore(np.squeeze(state))
 
+                #apply action and simulate
+                state_=state
+                state,dummy_pos,r=Env.step(np.reshape(a,[-1,1]))#step through simulation and read back observations
+                vrep.simxGetPingTime(clientID)
+                transition = np.hstack((np.squeeze(state_), np.squeeze(a), r, np.squeeze(state)))
+                total_return+=r
+                # lets append this into buffers
+                state_buffer.append(np.squeeze(state_))
+                action_buffer.append(np.squeeze(a))
+                reward_buffer.append(r)
+                agent.record(transition, state_buffer, action_buffer, reward_buffer)  # insert it into replay buffer
 
-                if step%N==0:
-                    u,stage,closing_time, release_time=demo_controller(p, R, q, sphere_pos, cup_pos, stage, step,  closing_time, release_time,t_s,N,Robot1,q_home)
+            returnCode = vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot)
+            time.sleep(2)
 
+            print("return:",total_return)
+            #save the agent
 
-                qdot=np.zeros([6,1])
-                qdot=u[0:6]
-                Robot1.SetArmJointTargetVel(qdot)
-                q_gdot=u[6:]
-                Robot1.SetHandTargetVel(q_gdot)
-                if stage==7:
-                    returnCode = vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot)
-                    time.sleep(2)
-                    break
-
+            with open("data.pkl",'wb') as f:
+                pickle.dump([agent.buffer,episode],f)
+            #now train
+            if episode>n_demos-1:
+                print("training")
+                for step in range(episode_length):
+                    agent.train(batch_size, step)
         returnCode=vrep.simxStopSimulation(clientID, vrep.simx_opmode_oneshot)
+    # Before closing the connection to V-REP, make sure that the last command sent out had time to arrive. You can guarantee this with (for example):
 
-
-     # Before closing the connection to V-REP, make sure that the last command sent out had time to arrive. You can guarantee this with (for example):
-        vrep.simxGetPingTime(clientID)
 
         # Now close the connection to V-REP:
         vrep.simxFinish(clientID)

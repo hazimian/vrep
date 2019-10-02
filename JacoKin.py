@@ -313,9 +313,9 @@ def JacoIK(pd,q0,p,R,kp,ko):
         B=np.matmul(np.linalg.pinv(L),np.matmul(Ko,eo))
         u=np.concatenate((A,B),axis=0)
         qdot=np.matmul(np.diag([1,1,1,1,1,1]),np.matmul(Jinv,u))
-        if dt*np.linalg.norm(qdot)>.05:#clamp max joint angular dispalcement
+        if dt*np.linalg.norm(qdot)>.03:#clamp max joint angular dispalcement
             #q = q + qdot /np.linalg.norm(qdot)
-            qdot=.05/dt*(qdot /np.linalg.norm(qdot))
+            qdot=.03/dt*(qdot /np.linalg.norm(qdot))
         q=q+dt*qdot#/np.linalg.norm(qdot)
 
     return q,p,np.linalg.norm(ep),np.linalg.norm(eo),qdot
